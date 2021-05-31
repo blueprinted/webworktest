@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>测试页面</title>
+		<meta content="yes" name="apple-mobile-web-app-capable">
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+		<meta name="format-detection" content="telephone=no, email=no" />
+		<meta name="renderer" content="webkit">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="HandheldFriendly" content="true">
+		<meta name="MobileOptimized" content="320">
+		<meta name="screen-orientation" content="portrait">
+		<meta name="x5-orientation" content="portrait">
+		<meta name="full-screen" content="yes">
+		<meta name="x5-fullscreen" content="true">
+		<meta name="browsermode" content="application">
+		<meta name="x5-page-mode" content="app">
+		<meta name="msapplication-tap-highlight" content="no">
+		<link rel="stylesheet" href="static/c/style.css?v=111" />
+		<style type="text/css">
+		body {
+			margin: 0;
+			max-width: none;
+		}
+		.container {
+			margin: 128px 0 0 20px;
+		}
+		.item-list {
+			float: left;
+		}
+		.item-content {
+			float: left;
+			margin: 0 0 0 12px;
+		}
+		.item-title {
+			display: block;
+			margin: 0 0 4px 0;
+			padding: 8px 4px 8px 4px;
+			background-color: #eee;
+			border: 1px solid #ddd;
+			cursor: pointer;
+		}
+		.active {background-color:#fcc;color:green;}
+		.item-content textarea{
+			min-width: 320px;
+			min-height: 240px;
+		}
+		.info {float:left;margin: 0 0 0 12px;}
+		pre{
+			padding: 4px 4px 4px 4px;
+			min-width:480px;min-height:240px;margin:0;background-color:#ddd;
+			white-space:pre-wrap; /* css3.0 */ 
+			white-space:-moz-pre-wrap; /* Firefox */ 
+			white-space:-pre-wrap; /* Opera 4-6 */ 
+			white-space:-o-pre-wrap; /* Opera 7 */ 
+			word-wrap:break-word; /* Internet Explorer 5.5+ */ 
+		}
+		.cl:after{content:".";display:block;height:0;clear:both;visibility:hidden}
+        .cl{zoom:1}
+		.alink {display: inline-block;margin: 20px 0 0 40px;}
+		</style>
+	</head>
+	<body>
+		<div class="container cl">
+			<div class="item-list">
+				<!--<a class="item-title" data-id="45" onclick="getArticleInfo(45)">111222333</a>-->
+			</div>
+			<div class="item-content">
+				<textarea id="content">111111</textarea>
+			</div>
+		</div>
+		<a class="alink" href="javascript:window.location.reload(true);">刷新</a>
+		<a class="alink" href="http://shouji.sogou.com/IntelligentWriting/">列表</a><br/><br/>
+		<div class="info"><pre id="debugger"></pre></div>
+		<script type="text/javascript" src="//img.shouji.sogou.com/wapdl/static/common/j/jquery-2.1.0.min.js"></script>
+		<script type="text/javascript" src="//img.shouji.sogou.com/wapdl/static/common/j/phpjs.js"></script>
+		<script type="text/javascript">
+		var autoIncrementId = 1;
+		$(function(){
+			getArticleList();
+		});
+		// 获取文件列表 data = {funcName:'Listinfo'}
+		function reqClient (data, succFun, failFun) {
+			query = {
+				request: JSON.stringify(data),
+				onSuccess: function(response) {
+					console.log(response);
+					if (typeof succFun == 'function') {
+						succFun(response);
+					} else {
+						console.log("not set success callback");
+					}
+				},
+				onFailure: function(errcode, errmessage) {
+					console.log('获取列表失败',errcode,errmessage);
+					$('#debugger').prepend("获取列表失败\n");
+					if (typeof failFun == 'function') {
+						failFun(errcode, errmessage);
+					} else {
+						console.log("not set failure callback");
+						$('#debugger').prepend("not set failure callback\n");
+					}
+				}
+			}
+			if (typeof window.cefQuery !== 'undefined') {
+				return window.cefQuery(query);
+			}
+			return null
+		}
+		function getArticleList() {
+			var startTimestamp = (new Date()).getTime();
+			var logStr = (autoIncrementId++) + ' 读取文章列表 start:' + startTimestamp;
+			reqClient({funcName:'Listinfo'}, function (response) {
+				console.log('getArticleList success');
+				$('#debugger').prepend(var_dump(response) + "\n");
+				var endedTimestamp = (new Date()).getTime();
+				logStr += ', success:' + endedTimestamp + ' request耗时:' + (endedTimestamp - startTimestamp) + 'ms';
+				var arr = JSON.parse(response);
+				for (var i in arr) {
+					$('.item-list').append(function(){
+						return '<a class="item-title" onclick="getArticleInfo(' + arr[i].id + ')" data-id="'+arr[i].id+'">' + (arr[i].title === '' ? '[标题空字符串]' : arr[i].title) + '('+arr[i].id+')</a>'
+					})
+				}
+				var timedot = (new Date()).getTime();
+				logStr += ', parse_json_string:' + timedot + ' parse耗时:' + (timedot - endedTimestamp) + 'ms';
+				logStr += ', total:' + timedot + ' total耗时:' + (timedot - startTimestamp) + 'ms';
+				$('#debugger').prepend(logStr + "\n");
+			}, function(errcode, errmessage) {
+				var endedTimestamp = (new Date()).getTime();
+				logStr += ', failure:' + endedTimestamp + ' 耗时:' + (endedTimestamp - startTimestamp) + 'ms';
+				$('#debugger').prepend(logStr + "\n");
+				console.log('getArticleList error', errcode, errmessage);
+			});
+		}
+		function getArticleInfo(id) {
+			$('.item-title[data-id="'+id+'"]').addClass('active').siblings().removeClass('active');
+			var startTimestamp = (new Date()).getTime();
+			var logStr = (autoIncrementId++) + ' 读取文章详情 start:' + startTimestamp;
+			reqClient({funcName:'Query',param:{id:id}}, function (response) {
+				// $('#debugger').prepend(var_dump(response) + "\n");
+				console.log('getArticleInfo success');
+				var endedTimestamp = (new Date()).getTime();
+				logStr += ', success:' + endedTimestamp + ' request耗时:' + (endedTimestamp - startTimestamp) + 'ms';
+				var arr = JSON.parse(response);
+				$('#content').val(arr['content']);
+				var timedot = (new Date()).getTime();
+				logStr += ', parse_json_string:' + timedot + ' parse耗时:' + (timedot - endedTimestamp) + 'ms';
+				logStr += ', total:' + timedot + ' total耗时:' + (timedot - startTimestamp) + 'ms';
+				$('#debugger').prepend(logStr + "\n");
+			}, function(errcode, errmessage) {
+				console.log('getArticleInfo error', errcode, errmessage);
+				var endedTimestamp = (new Date()).getTime();
+				logStr += ', failure:' + endedTimestamp + ' 耗时:' + (endedTimestamp - startTimestamp) + 'ms';
+				$('#debugger').prepend(logStr + "\n");
+			});
+		}
+		</script>
+	</body>
+</html>
